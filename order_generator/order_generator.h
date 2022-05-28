@@ -1,0 +1,5 @@
+#ifndef ORDER_GENERATOR
+#define ORDER_GENERATOR
+
+#endif /* ORDER_GENERATOR */
+

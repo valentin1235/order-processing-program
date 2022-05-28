@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "order_manager.h": "c",
+        "__bit_reference": "c",
+        "__string": "c",
+        "cstring": "c",
+        "courier_manager.h": "c"
+    }
+}

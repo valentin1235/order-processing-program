@@ -1,0 +1,4 @@
+#ifndef COURIER_PROCESSOR
+#define COURIER_PROCESSOR
+
+#endif /* COURIER_PROCESSOR */
