@@ -14,6 +14,8 @@ typedef struct courier {
 
 void* process_courier_thread(void* p);
 
-void* listen_delivery_event_thread(void* p);
+void* listen_targeted_delivery_event_thread(void* p);
+
+void* listen_random_delivery_event_thread(void* p);
 
 #endif /* COURIER_MANAGER_H */

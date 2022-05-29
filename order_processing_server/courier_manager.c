@@ -9,6 +9,7 @@
 
 #include "courier_manager.h"
 #include "server.h"
+#include "utils/message.h"
 
 
 
@@ -74,18 +75,22 @@ static order_t* dequeue_courier()
 void* process_courier_thread(void* p)
 {
     courier_t* courier;
-    request_t* pa_request = (char*)p;
+    char* pa_message = (char*)p;
     int sec_taken_to_arrive;
 
-    if (strcmp(strtok(pa_request->message, "#"), "COURIER") != 0) {
+    /* register sig int handler */
+    signal(SIGINT, SIG_INT_handler);
+
+    if (strcmp(strtok(pa_message, "#"), "COURIER") != 0) {
+        printf(MESSAGE_INVALID_SERVICE);
         goto end;
     }
 
     courier = malloc(sizeof(courier_t));
     
     
-    strcmp(courier->target, strtok(pa_request->message, "#"));
-    sec_taken_to_arrive = atoi(strtok(pa_request->message, "#"));
+    strcmp(courier->target, strtok(pa_message, "#"));
+    sec_taken_to_arrive = atoi(strtok(pa_message, "#"));
 
     /* sleep thread till courier arrive */
     sleep(sec_taken_to_arrive);
@@ -97,7 +102,7 @@ void* process_courier_thread(void* p)
     init_queue();
     enqueue_courier(courier);
 
-    printf("%order processed : %d\n", (int)courier->took_order_at);
+    printf("배달원이 도착했습니다 : %d\n", (int)courier->arrived_at);
 
 end:
     pthread_exit((void*)0);
@@ -107,28 +112,50 @@ static void deliver_order(courier_t* courier)
 {
     free(courier->order);
     free(courier);
+    printf("주문이 배송되었습니다 : %d\n", (int)courier->took_order_at);
+    print_time_records();
+    
 }
 
-void* listen_delivery_event_thread(void* p)
+
+void* listen_targeted_delivery_event_thread(void* p)
 {
     courier_t* courier = NULL;
-    while(courier = dequeue_courier() != NULL) {
-        order_t* order = NULL;
 
-        switch (strcmp(courier->target, "none")) {
-        case 0:
-            while(order = pop_random_order_or_null() != NULL) {
-                courier->order = order;
-            }
-            break;
-        
-        default:
+    /* register sig int handler */
+    signal(SIGINT, SIG_INT_handler);
+
+    do {
+        order_t* order = NULL;
+        courier = dequeue_courier();
+
+        if (courier != NULL && strcmp(courier->target, "none") != 0) {
             while(order = pop_order_or_null(courier->target) != NULL) {
                 courier->order = order;
+                break;
             }
-            break;
+            deliver_order(courier);
         }
+    } while(1);
+}
 
-        deliver_order(courier);
-    }
+void* listen_random_delivery_event_thread(void* p)
+{
+    courier_t* courier = NULL;
+
+    /* register sig int handler */
+    signal(SIGINT, SIG_INT_handler);
+
+    do {
+        order_t* order = NULL;
+        courier = dequeue_courier();
+
+        if (courier != NULL && strcmp(courier->target, "none") == 0) {
+            while(order = pop_random_order_or_null() != NULL) {
+                courier->order = order;
+                break;
+            }
+            deliver_order(courier);
+        }
+    } while(1);
 }

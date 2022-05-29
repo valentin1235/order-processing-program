@@ -1,13 +1,10 @@
 #ifndef TIME_MANAGER_H
 #define TIME_MANAGER_H
 
+#include "courier_manager.h"
 
-void add_courier_waiting_sec(void* p);
+void add_time_records(courier_t* courier);
 
-void add_order_wating_sec(void* p);
-
-void print_courier_waiting_sec(void);
-
-void print_order_wating_sec(void);
+void print_time_records(void);
 
 #endif /* TIME_MANAGER_H */

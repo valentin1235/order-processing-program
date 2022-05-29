@@ -42,19 +42,30 @@ static service_t get_service_type(char* message)
     return SERVICE_INVALID;
 }
 
+void SIG_INT_handler(int sig)
+{
+    print_time_records();
+
+    printf("스레드를 종료합니다 : %d\n", sig);
+    pthread_exit(NULL);
+}
+
 
 static void server_on(void)
 {
     int server_socket;
-
     struct sockaddr_in server_addr;
-    pthread_t thread;
+
+    pthread_t random_delivery_event_listening_thread;
+    pthread_t targeted_delivery_event_listening_thread;
+    pthread_t order_processing_thread;
+    pthread_t courier_processing_thread;
 
     signal(SIGPIPE, SIG_IGN); /* ignore EPIPE(broken pipe) signal */
 
     server_socket = socket(PF_INET, SOCK_STREAM, 0);
     if (server_socket == -1) {
-        printf("* unable to create socket\n");
+        printf("* 서버 소켓을 생성할수 없습니다\n");
         return ERROR_SOCKET;
     }
 
@@ -66,58 +77,62 @@ static void server_on(void)
 
     /* bind socket with socket descriptor */
     if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
-        printf("* bind error\n");
+        printf("* 서버 소켓 정보 바인딩에 실패했습니다\n");
         return ERROR_BIND;
     }
-    printf("* server run on 3000\n");
-
+    
     /* listen via binded socket */
     if (listen(server_socket, 5) == -1) {
-        printf("* listen error\n");
+        printf("* 서버 listen에 실패했습니다\n");
         return ERROR_LISTEN;
     }
+
+    printf("* 서버가 시작되었습니다. port:3000\n");
+
+    /* start delivery event listener */
+    pthread_create(&random_delivery_event_listening_thread, NULL, listen_random_delivery_event_thread, NULL);
+    pthread_create(&targeted_delivery_event_listening_thread, NULL, listen_targeted_delivery_event_thread, NULL);
 
     do {
         struct sockaddr_in client_addr;
         socklen_t client_addr_size;
         int client_socket;
-        request_t* pa_request;
-
-        int read_len;
-        
 
         client_addr_size = sizeof(client_addr);
-        printf("* start accepting client...\n");
+        printf("* 클라이언트를 받고있습니다...\n");
         client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_size);
-        printf("* client accepted : %d\n", client_socket);
+        printf("* 클라이언트를 받았습니다 : %d\n", client_socket);
 
-        
-        printf("read message..\n");
-        pa_request = malloc(sizeof(request_t));
-        pa_request->client_socket = client_socket;
-        read_len = read(client_socket, pa_request->message, MESSAGE_SIZE); 
-        if (read_len == -1 || read_len == 0) {
-            printf(MESSAGE_CONNECTION_CLOSED);
-            free(pa_request);
+        do {
+            int read_len;
+            char* pa_message = malloc(sizeof(char) * MESSAGE_SIZE);
+            
+            printf("클라이언트로부터 메세지를 읽고있습니다...\n");
+            read_len = read(client_socket, pa_message, MESSAGE_SIZE); 
+            if (read_len == -1 || read_len == 0) {
+                printf(MESSAGE_CONNECTION_CLOSED);
+                free(pa_message);
 
-            continue;
-        }
+                break;
+            }
 
-        switch (get_service_type(pa_request->message)) {
-        case SERVICE_ORDER:
-            pthread_create(&thread, NULL, process_order_thread, pa_request);
-            break;
-        case SERVICE_COURIER:
-            pthread_create(&thread, NULL, process_courier_thread, pa_request);
-            break;
-        case SERVICE_INVALID:
-            /* intentional fallthrough */
-        default:
-            write(client_socket, MESSAGE_INVALID_SERVICE, strlen(MESSAGE_INVALID_SERVICE) + 1);
-            continue;
-        }
-
-        printf("* new thread for (%d) created\n", client_socket);
+            switch (get_service_type(pa_message)) {
+            case SERVICE_ORDER:
+                pthread_create(&order_processing_thread, NULL, process_order_thread, pa_message);
+                printf("* 주문 처리 스레드가 생성되었습니다.\n");
+                break;
+            case SERVICE_COURIER:
+                pthread_create(&courier_processing_thread, NULL, process_courier_thread, pa_message);
+                printf("* 배달원 처리 스레드가 생성되었습니다.\n");
+                break;
+            case SERVICE_INVALID:
+                /* intentional fallthrough */
+            default:
+                write(client_socket, MESSAGE_INVALID_SERVICE, strlen(MESSAGE_INVALID_SERVICE) + 1);
+                printf("* 잘못된 서비스 요청메세지를 보냈습니다.\n");
+                continue;
+            }
+        } while(1);
     } while (1);
 }
 

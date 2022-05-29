@@ -10,7 +10,7 @@
 #include "order_manager.h"
 #include "server.h"
 #include "time_manager.h"
-#include "./utils/message.h"
+#include "utils/message.h"
 
 
 static order_t* s_ready_orders[ORDER_LIST_SIZE];
@@ -30,40 +30,34 @@ static void add_order(order_t* order)
 void* process_order_thread(void* p)
 {
     order_t* order;
-    request_t* pa_request = (char*)p;
+    char* message = (char*)p;
     int read_len;
 
-    do {
-        read_len = read(pa_request->client_socket, pa_request->message, MESSAGE_SIZE);
-        if (read_len == -1 || read_len == 0) {
-            printf(MESSAGE_CONNECTION_CLOSED);
-            goto end;
-        }
+    /* register sig int handler */
+    signal(SIGINT, SIG_INT_handler);
 
-        if (strcmp(strtok(pa_request->message, "#"), "ORDER") != 0) {
-            write(pa_request->client_socket, MESSAGE_INVALID_SERVICE, strlen(MESSAGE_INVALID_SERVICE) + 1);
-            continue;
-        }
+    if (strcmp(strtok(message, "#"), "ORDER") != 0) {
+        printf(MESSAGE_INVALID_SERVICE);
+        goto end;
+    }
 
-        order = malloc(sizeof(order_t));
-        strncpy(order->order_id, strtok(pa_request->message, "#"), ORDER_ID_SIZE);
-        strncpy(order->name, strtok(pa_request->message, "#"), ORDER_NAME_SIZE);
-        order->prep_time = atoi(strtok(pa_request->message, "#"));
+    order = malloc(sizeof(order_t));
+    strncpy(order->order_id, strtok(message, "#"), ORDER_ID_SIZE);
+    strncpy(order->name, strtok(message, "#"), ORDER_NAME_SIZE);
+    order->prep_time = atoi(strtok(message, "#"));
 
-        /* sleep thread till preperation time end */
-        sleep(order->prep_time); 
-        order->ready_at = time(NULL);
-        order->taken_at = NULL;
+    /* sleep thread till preperation time end */
+    sleep(order->prep_time); 
+    order->ready_at = time(NULL);
+    order->taken_at = NULL;
 
-        /* add order */
-        init_queue();
-        add_order(order);
+    /* add order */
+    init_queue();
+    add_order(order);
 
-        printf("%order processed : %d\n", (int)order->ready_at);
-    } while (0);
+    printf("음식준비완료. 음식이 배달원을 기다리고 있습니다 : %d\n", (int)order->ready_at);
 
 end:
-    free(pa_request);
     pthread_exit((void*)0);
 }
 

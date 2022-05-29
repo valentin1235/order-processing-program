@@ -3,8 +3,6 @@
 #include <string.h>
 
 #include "time_manager.h"
-#include "order_manager.h"
-#include "courier_manager.h"
 
 static double s_courier_waiting_times[COURIER_QUEUE_SIZE] = { 0, };
 static size_t s_courier_waiting_times_count = 0;
@@ -19,7 +17,7 @@ void add_time_records(courier_t* courier)
     s_order_waiting_times[s_order_waiting_times_count++] = difftime(courier->order->taken_at, courier->order->ready_at);
 }
 
-void print_time_records()
+void print_time_records(void)
 {
     double sum_courier_waiting_time;
     double sum_order_waiting_time;
@@ -33,6 +31,6 @@ void print_time_records()
         sum_order_waiting_time += s_order_waiting_times[i];
     }
 
-    printf("average of courier wating time : %f sec\n", sum_courier_waiting_time / s_courier_waiting_times_count);
-    printf("average of order wating time : %f sec\n", sum_order_waiting_time / s_order_waiting_times_count);
+    printf("* 배달원 평균 대기 시간 : %f s\n", sum_courier_waiting_time / s_courier_waiting_times_count);
+    printf("* 음식 픽업 평균 대기 시간 : %f s\n", sum_order_waiting_time / s_order_waiting_times_count);
 }
