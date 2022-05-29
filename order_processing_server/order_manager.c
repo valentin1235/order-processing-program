@@ -31,7 +31,6 @@ void* process_order_thread(void* p)
 {
     order_t* order;
     char* message = (char*)p;
-    int read_len;
 
     /* register sig int handler */
     signal(SIGINT, SIG_INT_handler);
@@ -49,10 +48,9 @@ void* process_order_thread(void* p)
     /* sleep thread till preperation time end */
     sleep(order->prep_time); 
     order->ready_at = time(NULL);
-    order->taken_at = NULL;
+    order->taken_at = time(0);
 
     /* add order */
-    init_queue();
     add_order(order);
 
     printf("음식준비완료. 음식이 배달원을 기다리고 있습니다 : %d\n", (int)order->ready_at);

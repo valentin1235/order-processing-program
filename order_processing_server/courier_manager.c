@@ -9,7 +9,9 @@
 
 #include "courier_manager.h"
 #include "server.h"
+#include "time_manager.h"
 #include "utils/message.h"
+#include "utils/bool.h"
 
 
 
@@ -25,21 +27,22 @@ static courier_queue_t s_courier_queue;
 
 
 
-static void init_queue()
+static void init_queue(void)
 {
     pthread_mutex_lock(&g_mutex);
     {
         s_courier_queue.value_count = 0;
         s_courier_queue.front = 0;
         s_courier_queue.back = 0;
-        memset(s_courier_queue.values, 0, sizeof(courier_queue_t) * COURIER_QUEUE_SIZE);
     }
     pthread_mutex_unlock(&g_mutex);
 }
 
-static void enqueue_courier(courier_t* value)
+static int enqueue_courier(courier_t* value)
 {
-    assert(s_courier_queue.value_count < COURIER_QUEUE_SIZE);
+    if (s_courier_queue.value_count >= COURIER_QUEUE_SIZE) {
+        return FALSE;
+    }
 
     pthread_mutex_lock(&g_mutex);
     {
@@ -50,11 +53,14 @@ static void enqueue_courier(courier_t* value)
     pthread_mutex_unlock(&g_mutex);
 
     printf("[enqueue] front:%d, back:%d, count:%lu\n", s_courier_queue.front, s_courier_queue.back, s_courier_queue.value_count);
+
+    return TRUE;
 }
 
-static order_t* dequeue_courier()
+static courier_t* dequeue_courier()
 {
-    order_t* ret;
+    courier_t* ret;
+
     if (s_courier_queue.value_count < 1) {
         return NULL;
     }
@@ -67,7 +73,7 @@ static order_t* dequeue_courier()
     }
     pthread_mutex_unlock(&g_mutex);
 
-    printf("[dequeue] front:%d, back:%d, count:%lu, ret:%s\n", s_courier_queue.front, s_courier_queue.back, s_courier_queue.value_count, ret->name);
+    printf("[dequeue] front:%d, back:%d, count:%lu, ret:%s\n", s_courier_queue.front, s_courier_queue.back, s_courier_queue.value_count, ret->target);
 
     return ret;
 }
@@ -130,11 +136,13 @@ void* listen_targeted_delivery_event_thread(void* p)
         courier = dequeue_courier();
 
         if (courier != NULL && strcmp(courier->target, "none") != 0) {
-            while(order = pop_order_or_null(courier->target) != NULL) {
+            while((order = pop_order_or_null(courier->target)) != NULL) {
+                order->taken_at = time(NULL);
                 courier->order = order;
+                deliver_order(courier);
+
                 break;
             }
-            deliver_order(courier);
         }
     } while(1);
 }
@@ -151,11 +159,13 @@ void* listen_random_delivery_event_thread(void* p)
         courier = dequeue_courier();
 
         if (courier != NULL && strcmp(courier->target, "none") == 0) {
-            while(order = pop_random_order_or_null() != NULL) {
+            while((order = pop_random_order_or_null()) != NULL) {
+                order->taken_at = time(NULL);
                 courier->order = order;
+                deliver_order(courier);
+
                 break;
             }
-            deliver_order(courier);
         }
     } while(1);
 }

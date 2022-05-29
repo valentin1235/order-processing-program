@@ -8,8 +8,6 @@
 #define ORDER_ID_SIZE (100)
 #define ORDER_LIST_SIZE (1000)
 
-extern pthread_mutex_t g_mutex;
-extern size_t g_order_counts = 0;
 
 /* types */
 typedef struct order {

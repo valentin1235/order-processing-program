@@ -20,13 +20,15 @@ typedef enum service {
     SERVICE_INVALID
 } service_t;
 
+pthread_mutex_t g_mutex;
+
 
 
 static service_t get_service_type(char* message)
 {
     char* p_message = message;
     char path_str[8];
-    size_t i;
+    size_t i = 0;
 
     while (*p_message != '#' && *p_message != '\0') {
         path_str[i++] = *p_message;
@@ -51,7 +53,7 @@ void SIG_INT_handler(int sig)
 }
 
 
-static void server_on(void)
+static error_t server_on(void)
 {
     int server_socket;
     struct sockaddr_in server_addr;
@@ -134,6 +136,8 @@ static void server_on(void)
             }
         } while(1);
     } while (1);
+
+    return SUCCESS;
 }
 
 int main(void)

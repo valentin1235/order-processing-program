@@ -19,8 +19,8 @@ void add_time_records(courier_t* courier)
 
 void print_time_records(void)
 {
-    double sum_courier_waiting_time;
-    double sum_order_waiting_time;
+    double sum_courier_waiting_time = 0.0f;
+    double sum_order_waiting_time = 0.0f;
     size_t i;
 
     for (i = 0; i < s_courier_waiting_times_count; ++i) {
