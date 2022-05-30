@@ -13,70 +13,78 @@
 #include "utils/message.h"
 #include "utils/bool.h"
 
+pthread_mutex_t g_random_courier_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
-
-typedef struct courier_queue {
+typedef struct random_courier_queue {
     int front;
     int back;
-    size_t value_count;
+    int value_count;
     courier_t* values[COURIER_QUEUE_SIZE];
-} courier_queue_t;
+} random_courier_queue_t;
 
-static courier_queue_t s_courier_queue;
+static random_courier_queue_t* s_random_courier_queue;
+
+courier_t s_target_couriers[COURIER_QUEUE_SIZE];
+size_t s_target_courier_count = 0;
 
 
 
-static void init_queue(void)
+void init_courier_queue(void)
 {
-    pthread_mutex_lock(&g_mutex);
+    s_random_courier_queue = malloc(sizeof(random_courier_queue_t));
+    
+    pthread_mutex_lock(&g_random_courier_mutex);
     {
-        s_courier_queue.value_count = 0;
-        s_courier_queue.front = 0;
-        s_courier_queue.back = 0;
+        s_random_courier_queue->value_count = 0;
+        s_random_courier_queue->front = 0;
+        s_random_courier_queue->back = 0;
     }
-    pthread_mutex_unlock(&g_mutex);
+    pthread_mutex_unlock(&g_random_courier_mutex);
 }
 
-static int enqueue_courier(courier_t* value)
+void enqueue_random_courier(courier_t* value)
 {
-    if (s_courier_queue.value_count >= COURIER_QUEUE_SIZE) {
-        return FALSE;
-    }
-
-    pthread_mutex_lock(&g_mutex);
+    printf("0 !!!");
+    pthread_mutex_lock(&g_random_courier_mutex);
     {
-        s_courier_queue.values[s_courier_queue.back] = value;
-        s_courier_queue.back = (s_courier_queue.back + 1) % COURIER_QUEUE_SIZE;
-        ++s_courier_queue.value_count;
+        if (s_random_courier_queue->value_count >= COURIER_QUEUE_SIZE) {
+            printf("1 !!!");
+            goto exit;
+        }
+        s_random_courier_queue->values[s_random_courier_queue->back] = value;
+        s_random_courier_queue->back = (s_random_courier_queue->back + 1) % COURIER_QUEUE_SIZE;
+        ++s_random_courier_queue->value_count;
+
+        printf("[enqueue_random_courier] front:%d, back:%d, count:%lu\n", s_random_courier_queue->front, s_random_courier_queue->back, s_random_courier_queue->value_count);
     }
-    pthread_mutex_unlock(&g_mutex);
-
-    printf("[enqueue] front:%d, back:%d, count:%lu\n", s_courier_queue.front, s_courier_queue.back, s_courier_queue.value_count);
-
-    return TRUE;
+exit:
+    pthread_mutex_unlock(&g_random_courier_mutex);
+    printf("2 !!!");
 }
 
-static courier_t* dequeue_courier()
+
+courier_t* dequeue_random_courier(void)
 {
-    courier_t* ret;
+    courier_t* ret = NULL;
 
-    if (s_courier_queue.value_count < 1) {
-        return NULL;
-    }
-
-    pthread_mutex_lock(&g_mutex);
+    pthread_mutex_lock(&g_random_courier_mutex);
     {
-        ret = s_courier_queue.values[s_courier_queue.front];
-        s_courier_queue.front = (s_courier_queue.front + 1) % COURIER_QUEUE_SIZE;
-        --s_courier_queue.value_count;
-    }
-    pthread_mutex_unlock(&g_mutex);
+        if (s_random_courier_queue->value_count <= 0) {
+            goto exit;
+        }
 
-    printf("[dequeue] front:%d, back:%d, count:%lu, ret:%s\n", s_courier_queue.front, s_courier_queue.back, s_courier_queue.value_count, ret->target);
+        ret = s_random_courier_queue->values[s_random_courier_queue->front];
+        s_random_courier_queue->front = (s_random_courier_queue->front + 1) % COURIER_QUEUE_SIZE;
+        --s_random_courier_queue->value_count;
+        printf("[dequeue_random_courier] front:%d, back:%d, count:%lu, ret:%s\n", s_random_courier_queue->front, s_random_courier_queue->back, s_random_courier_queue->value_count, ret->target);
+    }
+exit:
+    pthread_mutex_unlock(&g_random_courier_mutex);
 
     return ret;
 }
+
 
 void* process_courier_thread(void* p)
 {
@@ -87,6 +95,8 @@ void* process_courier_thread(void* p)
     /* register sig int handler */
     signal(SIGINT, SIG_INT_handler);
 
+    printf("%s\n", pa_message);
+
     if (strcmp(strtok(pa_message, "#"), "COURIER") != 0) {
         printf(MESSAGE_INVALID_SERVICE);
         goto end;
@@ -95,20 +105,24 @@ void* process_courier_thread(void* p)
     courier = malloc(sizeof(courier_t));
     
     
-    strcmp(courier->target, strtok(pa_message, "#"));
-    sec_taken_to_arrive = atoi(strtok(pa_message, "#"));
+    strncpy(courier->target, strtok(NULL, "#"), ORDER_NAME_SIZE);
+    sec_taken_to_arrive = atoi(strtok(NULL, "#"));
 
     /* sleep thread till courier arrive */
+    printf("배달원이 (%d)초 후 도착합니다\n", sec_taken_to_arrive);
     sleep(sec_taken_to_arrive);
 
     courier->arrived_at = time(NULL);
     courier->order = NULL;
 
     /* add order */
-    init_queue();
-    enqueue_courier(courier);
+    if (strcmp(courier->target, "none") == 0) {
+        printf("1@@@\n");
+        enqueue_random_courier(courier);
+    }
+    
 
-    printf("배달원이 도착했습니다 : %d\n", (int)courier->arrived_at);
+    printf("[courier] 배달원이 도착했습니다(주문이름:%s). 총 (%d)명의 배달원이 대기중입니다\n", courier->target, s_random_courier_queue->value_count);
 
 end:
     pthread_exit((void*)0);
@@ -118,25 +132,26 @@ static void deliver_order(courier_t* courier)
 {
     free(courier->order);
     free(courier);
-    printf("주문이 배송되었습니다 : %d\n", (int)courier->took_order_at);
+    printf("[courier] 주문이 배송되었습니다 : %d\n", (int)courier->took_order_at);
     print_time_records();
     
 }
 
-
+#if 0
 void* listen_targeted_delivery_event_thread(void* p)
 {
-    courier_t* courier = NULL;
-
     /* register sig int handler */
     signal(SIGINT, SIG_INT_handler);
 
-    do {
-        order_t* order = NULL;
-        courier = dequeue_courier();
+    printf("[courier] 고정 주문 배달원을 기다리고 있습니다...\n");
+    while (TRUE) {
+        courier_t* courier = NULL;
+        courier = dequeue_target_courier();
 
-        if (courier != NULL && strcmp(courier->target, "none") != 0) {
-            while((order = pop_order_or_null(courier->target)) != NULL) {
+        if (courier != NULL) {
+            order_t* order = NULL;
+            printf("[courier] 고정 주문 배달원 (%s)가 음식을 기다리고 있습니다...\n", courier->target);
+            while ((order = pop_order_or_null(courier->target)) != NULL) {
                 order->taken_at = time(NULL);
                 courier->order = order;
                 deliver_order(courier);
@@ -144,28 +159,33 @@ void* listen_targeted_delivery_event_thread(void* p)
                 break;
             }
         }
-    } while(1);
+    };
 }
+#endif
 
 void* listen_random_delivery_event_thread(void* p)
 {
-    courier_t* courier = NULL;
+    order_t* order = NULL;
 
     /* register sig int handler */
     signal(SIGINT, SIG_INT_handler);
 
-    do {
-        order_t* order = NULL;
-        courier = dequeue_courier();
+    printf("[random_courier] 주문이 포장되길 기다리고 있습니다...\n");
+    while ((order = pop_random_order_or_null()) != NULL) {
+        courier_t* courier;
 
-        if (courier != NULL && strcmp(courier->target, "none") == 0) {
-            while((order = pop_random_order_or_null()) != NULL) {
-                order->taken_at = time(NULL);
-                courier->order = order;
-                deliver_order(courier);
+        printf("[random_courier] 배달 기사님이 오기를 기다리고 있습니다...\n");
+        while ((courier = dequeue_random_courier()) != NULL) {
+            time_t now = time(NULL);
 
-                break;
-            }
+            courier->order = order;
+            courier->took_order_at = now;
+            order->taken_at = now;
+
+            deliver_order(courier);
+
+            break;
         }
-    } while(1);
+    }
+    
 }

@@ -4,6 +4,7 @@
         "__bit_reference": "c",
         "__string": "c",
         "cstring": "c",
-        "courier_manager.h": "c"
+        "courier_manager.h": "c",
+        "parson.h": "c"
     }
 }
