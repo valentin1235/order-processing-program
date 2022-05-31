@@ -7,8 +7,6 @@
 #define ORDER_ID_SIZE (100)
 #define ORDER_LIST_SIZE (1000)
 
-extern pthread_mutex_t g_order_mutex;
-
 /* types */
 typedef struct order {
     char order_id[ORDER_ID_SIZE];
@@ -18,15 +16,16 @@ typedef struct order {
     time_t taken_at;
 } order_t;
 
-
-
+extern pthread_mutex_t g_order_mutex;
+extern order_t* g_ready_orders[ORDER_LIST_SIZE];
+extern size_t g_ready_order_count;
 
 /* methods */
-void process_orders();
+void process_orders(const char* file_name);
 
 order_t* pop_random_order_or_null(void);
 
-order_t* pop_order_or_null(const char* name);
+void remove_order(size_t i);
 
 void add_order(order_t* order); /* tmp */
 

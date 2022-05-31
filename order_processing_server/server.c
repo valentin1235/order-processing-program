@@ -1,27 +1,25 @@
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <errno.h>
 
-#include "server.h"
-#include "order_manager.h"
 #include "courier_manager.h"
+#include "order_manager.h"
+#include "server.h"
 #include "time_manager.h"
 #include "utils/message.h"
 
 #define SERVICE_NAME_LEN (8)
-
 
 typedef enum service {
     SERVICE_COURIER,
     SERVICE_INVALID,
     SERVICE_IGNORED
 } service_t;
-
 
 static service_t get_service_type(char* message, size_t message_len)
 {
@@ -52,7 +50,6 @@ static service_t get_service_type(char* message, size_t message_len)
     return SERVICE_INVALID;
 }
 
-
 void SIG_INT_handler(int sig)
 {
     print_time_records();
@@ -62,7 +59,6 @@ void SIG_INT_handler(int sig)
 
     exit(1);
 }
-
 
 static error_t server_on(void)
 {
@@ -92,7 +88,7 @@ static error_t server_on(void)
         printf("[main] 서버 소켓 정보 바인딩에 실패했습니다\n");
         return ERROR_BIND;
     }
-    
+
     /* listen via binded socket */
     if (listen(server_socket, 5) == -1) {
         printf("[main] 서버 listen에 실패했습니다\n");
@@ -102,12 +98,11 @@ static error_t server_on(void)
     printf("[main] 서버가 시작되었습니다. port:3000\n");
 
     /* initialize courier queue */
-    init_courier_queue();
+    init_random_courier_queue();
 
+    
     /* start delivery event listener */
-    #if 0
-    pthread_create(&thread_target_delivery, NULL, listen_targeted_delivery_event_thread, NULL);
-    #endif
+    pthread_create(&thread_target_delivery, NULL, listen_target_delivery_event_thread, NULL);
 
     do {
         struct sockaddr_in client_addr;
@@ -118,12 +113,12 @@ static error_t server_on(void)
 
         client_addr_size = sizeof(client_addr);
         printf("[main] 클라이언트를 받고있습니다...\n");
-        client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_size);
+        client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_addr_size);
         printf("[main] 클라이언트를 받았습니다 : %d\n", client_socket);
 
         request = malloc(sizeof(request_t));
         request->client_socket = client_socket;
-        read_len = read(client_socket, request, MESSAGE_SIZE); 
+        read_len = read(client_socket, request, MESSAGE_SIZE);
         if (read_len == -1 || read_len == 0) {
             printf(MESSAGE_CONNECTION_CLOSED);
             free(request);
@@ -150,10 +145,8 @@ static error_t server_on(void)
     return SUCCESS;
 }
 
-
 int main(int argc, char** argv)
 {
-    process_orders();
+    process_orders(argv[1]);
     server_on();
-    
 }
