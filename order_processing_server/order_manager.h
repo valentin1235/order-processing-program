@@ -3,8 +3,7 @@
 
 #include <pthread.h>
 
-#define ORDER_MESSAGE_SIZE (200)
-#define ORDER_NAME_SIZE (50)
+#define ORDER_NAME_SIZE (100)
 #define ORDER_ID_SIZE (100)
 #define ORDER_LIST_SIZE (1000)
 
@@ -25,8 +24,12 @@ typedef struct order {
 /* methods */
 void* process_order_thread(void* p);
 
-order_t* pop_random_order_or_null();
+order_t* pop_random_order_or_null(void);
 
 order_t* pop_order_or_null(const char* name);
+
+void add_order(order_t* order); /* tmp */
+
+void* cook(void* p);
 
 #endif /* ORDER_MANAGER_H */

@@ -18,9 +18,11 @@ void* listen_targeted_delivery_event_thread(void* p);
 
 void* listen_random_delivery_event_thread(void* p);
 
+void deliver_order(courier_t* courier);
+
 
 void init_courier_queue(void);
 void enqueue_random_courier(courier_t* value);
-courier_t* dequeue_courier(void);
+courier_t* dequeue_random_courier(void);
 
 #endif /* COURIER_MANAGER_H */

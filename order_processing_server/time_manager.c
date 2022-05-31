@@ -11,10 +11,10 @@ static double s_order_waiting_times[ORDER_LIST_SIZE] = { 0, };
 static size_t s_order_waiting_times_count = 0;
 
 
-void add_time_records(courier_t* courier)
+void add_time_records(double order_wait_time, double courier_wait_time)
 {
-    s_courier_waiting_times[s_courier_waiting_times_count++] = difftime(courier->order->taken_at, courier->arrived_at);
-    s_order_waiting_times[s_order_waiting_times_count++] = difftime(courier->order->taken_at, courier->order->ready_at);
+    s_courier_waiting_times[s_courier_waiting_times_count++] = courier_wait_time;
+    s_order_waiting_times[s_order_waiting_times_count++] = order_wait_time;
 }
 
 void print_time_records(void)
@@ -31,6 +31,6 @@ void print_time_records(void)
         sum_order_waiting_time += s_order_waiting_times[i];
     }
 
-    printf("* 배달원 평균 대기 시간 : %f s\n", sum_courier_waiting_time / s_courier_waiting_times_count);
-    printf("* 음식 픽업 평균 대기 시간 : %f s\n", sum_order_waiting_time / s_order_waiting_times_count);
+    printf("* 배달원 평균 대기 시간 : (%.2f)s\n", sum_courier_waiting_time / s_courier_waiting_times_count);
+    printf("* 음식 픽업 평균 대기 시간 : (%.2f)s\n", sum_order_waiting_time / s_order_waiting_times_count);
 }

@@ -11,7 +11,7 @@
 #include "order_manager.h"
 #include "courier_manager.h"
 #include "time_manager.h"
-#include "./utils/message.h"
+#include "utils/message.h"
 
 #define SERVICE_NAME_LEN (8)
 
@@ -68,15 +68,15 @@ void SIG_INT_handler(int sig)
 }
 
 
+
 static error_t server_on(void)
 {
     int server_socket;
     struct sockaddr_in server_addr;
 
-    pthread_t random_delivery_event_listening_thread;
-    pthread_t targeted_delivery_event_listening_thread;
-    pthread_t order_processing_thread;
-    pthread_t courier_processing_thread;
+    pthread_t thread_target_delivery;
+    pthread_t thread_order;
+    pthread_t thread_courier;
 
     signal(SIGPIPE, SIG_IGN); /* ignore EPIPE(broken pipe) signal */
 
@@ -110,57 +110,81 @@ static error_t server_on(void)
     init_courier_queue();
 
     /* start delivery event listener */
-    pthread_create(&random_delivery_event_listening_thread, NULL, listen_random_delivery_event_thread, NULL);
-    // pthread_create(&targeted_delivery_event_listening_thread, NULL, listen_targeted_delivery_event_thread, NULL);
+    #if 0
+    pthread_create(&thread_target_delivery, NULL, listen_targeted_delivery_event_thread, NULL);
+    #endif
 
     do {
         struct sockaddr_in client_addr;
         socklen_t client_addr_size;
         int client_socket;
+        request_t* request;
+        int read_len;
 
         client_addr_size = sizeof(client_addr);
         printf("[main] 클라이언트를 받고있습니다...\n");
         client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_size);
         printf("[main] 클라이언트를 받았습니다 : %d\n", client_socket);
 
-        do {
-            int read_len;
-            char* pa_message = malloc(sizeof(char) * MESSAGE_SIZE);
-            
-            // printf("[main] 클라이언트로부터 메세지를 읽고있습니다...\n");
-            read_len = read(client_socket, pa_message, MESSAGE_SIZE); 
-            if (read_len == -1 || read_len == 0) {
-                printf(MESSAGE_CONNECTION_CLOSED);
-                free(pa_message);
+        request = malloc(sizeof(request_t));
+        request->client_socket = client_socket;
+        read_len = read(client_socket, request, MESSAGE_SIZE); 
+        if (read_len == -1 || read_len == 0) {
+            printf(MESSAGE_CONNECTION_CLOSED);
+            free(request);
 
-                break;
-            }
+            break;
+        }
 
-            switch (get_service_type(pa_message, read_len)) {
-            case SERVICE_ORDER:
-                pthread_create(&order_processing_thread, NULL, process_order_thread, pa_message);
-                printf("[main] 주문 처리 스레드가 생성되었습니다.\n");
-                break;
-            case SERVICE_COURIER:
-                pthread_create(&courier_processing_thread, NULL, process_courier_thread, pa_message);
-                printf("[main] 배달원 처리 스레드가 생성되었습니다.\n");
-                break;
-            case SERVICE_INVALID:
-                write(client_socket, MESSAGE_INVALID_SERVICE, strlen(MESSAGE_INVALID_SERVICE) + 1);
-                printf("[main] 잘못된 서비스요청 메세지를 보냈습니다.\n");
-                break;
-            case SERVICE_IGNORED:
-                /* intentional fall through */
-            default:
-                break;
-            }
-        } while(1);
+        switch (get_service_type(request->message, read_len)) {
+        case SERVICE_ORDER:
+            pthread_create(&thread_order, NULL, process_order_thread, &request);
+            printf("[main] 주문 처리 스레드가 생성되었습니다.\n");
+            break;
+        case SERVICE_COURIER:
+            pthread_create(&thread_courier, NULL, process_courier_thread, &request);
+            printf("[main] 배달원 처리 스레드가 생성되었습니다.\n");
+            break;
+        case SERVICE_INVALID:
+            write(client_socket, MESSAGE_INVALID_SERVICE, strlen(MESSAGE_INVALID_SERVICE) + 1);
+            printf("[main] 잘못된 서비스요청 메세지를 보냈습니다.\n");
+            break;
+        case SERVICE_IGNORED:
+            /* intentional fall through */
+        default:
+            break;
+        }
     } while (1);
 
     return SUCCESS;
 }
 
+void process_orders(const char* file_name)
+{
+    JSON_Value* json_file;
+    JSON_Array* json_arr;
+    size_t json_arr_count;
+    size_t i;
+    pthread_t thread_cook;
+    order_t* order = malloc(sizeof(order_t));
+    
+
+    json_file = json_parse_file(file_name);
+    json_arr = json_value_get_array(json_file);
+    json_arr_count = json_array_get_count(json_arr);
+
+    for (i = 0; i < json_arr_count; ++i) {
+        JSON_Object* obj = json_array_get_object(json_arr, i);
+
+        strncpy(order->order_id, json_object_get_string(obj, "id"), ORDER_ID_SIZE);
+        strncpy(order->name, json_object_get_string(obj, "name"), ORDER_NAME_SIZE);
+        order->prep_time = (int) json_object_get_number(obj, "prepTime");
+
+        pthread_create(&thread_cook, NULL, cook, &order);
+    }
+}
+
 int main(void)
-{   
+{
     server_on();
 }
