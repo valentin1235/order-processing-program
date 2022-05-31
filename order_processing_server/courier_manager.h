@@ -5,6 +5,8 @@
 
 #define COURIER_QUEUE_SIZE (1000)
 
+extern pthread_mutex_t g_random_courier_mutex;
+
 typedef struct courier {
     time_t took_order_at;
     time_t arrived_at;

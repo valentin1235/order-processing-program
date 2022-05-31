@@ -17,7 +17,6 @@
 
 
 typedef enum service {
-    SERVICE_ORDER,
     SERVICE_COURIER,
     SERVICE_INVALID,
     SERVICE_IGNORED
@@ -48,9 +47,7 @@ static service_t get_service_type(char* message, size_t message_len)
 
     path_str[i] = '\0';
 
-    if (strcmp(path_str, "ORDER") == 0) {
-        return SERVICE_ORDER;
-    } else if (strcmp(path_str, "COURIER") == 0) {
+    if (strcmp(path_str, "COURIER") == 0) {
         return SERVICE_COURIER;
     }
 
@@ -137,10 +134,6 @@ static error_t server_on(void)
         }
 
         switch (get_service_type(request->message, read_len)) {
-        case SERVICE_ORDER:
-            pthread_create(&thread_order, NULL, process_order_thread, &request);
-            printf("[main] 주문 처리 스레드가 생성되었습니다.\n");
-            break;
         case SERVICE_COURIER:
             pthread_create(&thread_courier, NULL, process_courier_thread, &request);
             printf("[main] 배달원 처리 스레드가 생성되었습니다.\n");
@@ -159,32 +152,11 @@ static error_t server_on(void)
     return SUCCESS;
 }
 
-void process_orders(const char* file_name)
+
+int main(int argc, char** argv)
 {
-    JSON_Value* json_file;
-    JSON_Array* json_arr;
-    size_t json_arr_count;
-    size_t i;
-    pthread_t thread_cook;
-    order_t* order = malloc(sizeof(order_t));
-    
-
-    json_file = json_parse_file(file_name);
-    json_arr = json_value_get_array(json_file);
-    json_arr_count = json_array_get_count(json_arr);
-
-    for (i = 0; i < json_arr_count; ++i) {
-        JSON_Object* obj = json_array_get_object(json_arr, i);
-
-        strncpy(order->order_id, json_object_get_string(obj, "id"), ORDER_ID_SIZE);
-        strncpy(order->name, json_object_get_string(obj, "name"), ORDER_NAME_SIZE);
-        order->prep_time = (int) json_object_get_number(obj, "prepTime");
-
-        pthread_create(&thread_cook, NULL, cook, &order);
-    }
-}
-
-int main(void)
-{
+    pthread_mutex_init(&g_random_courier_mutex, NULL);
+    process_orders(argv[1]);
     server_on();
+    
 }

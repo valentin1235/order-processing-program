@@ -22,7 +22,7 @@ typedef struct order {
 
 
 /* methods */
-void* process_order_thread(void* p);
+void process_orders(const char* file_name);
 
 order_t* pop_random_order_or_null(void);
 
