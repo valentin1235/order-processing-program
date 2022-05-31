@@ -14,6 +14,7 @@
 #include "utils/bool.h"
 #include "parson.h"
 
+#define FILE_NAME_SIZE (100)
 
 pthread_mutex_t g_order_mutex;
 
@@ -58,24 +59,62 @@ void* cook(void* p)
     pthread_exit((void*)0);
 }
 
-void process_orders(const char* file_name)
+void read_filename(char* name, size_t size)
+{
+    char* p_name = name;
+
+    while (TRUE) {
+        printf("\"파일이름.json\" 을 입력하세요\n");
+        if (fgets(name, size, stdin) != NULL) {
+            printf("%s\n", p_name);
+            while (*p_name != '.' && *p_name != '\0' && *p_name != '\n') {
+                ++p_name;
+            }
+
+            if (*p_name != '.' 
+                    || *(p_name + 1) != 'j' 
+                    || *(p_name + 2) != 's' 
+                    || *(p_name + 3) != 'o' 
+                    || *(p_name + 4) != 'n') {
+                printf("[오류] 파일형식이 잘못되었습니다\n", *p_name);
+                p_name = name;
+                continue;
+            }
+
+            while (*p_name != '\0' && *p_name != '\n') {
+                ++p_name;
+            }
+            *p_name = '\0';
+            p_name = name;
+
+            if (access(name, F_OK) == -1) {
+                printf("[오류] 파일이 존재하지 않습니다\n");
+                p_name = name;
+                continue;
+            }
+
+            break;
+        }
+    }
+}
+
+void process_orders()
 {
     JSON_Value* json_file;
     JSON_Array* json_arr;
     size_t json_arr_count;
     size_t i;
     pthread_t thread_cook;
+    char filename[FILE_NAME_SIZE];
 
+    read_filename(filename, FILE_NAME_SIZE);
+
+    pthread_mutex_init(&g_random_courier_mutex, NULL);
     pthread_mutex_init(&g_order_mutex, NULL);
     
-    
-    printf("%s\n", file_name);
-
-    json_file = json_parse_file(file_name);
+    json_file = json_parse_file(filename);
     json_arr = json_value_get_array(json_file);
     json_arr_count = json_array_get_count(json_arr);
-
-    printf("1\n");
 
     for (i = 0; i < json_arr_count; ++i) {
         order_t* order = malloc(sizeof(order_t));

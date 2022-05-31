@@ -23,8 +23,6 @@ typedef enum service {
 } service_t;
 
 
-
-
 static service_t get_service_type(char* message, size_t message_len)
 {
     char* p_message = message;
@@ -54,6 +52,7 @@ static service_t get_service_type(char* message, size_t message_len)
     return SERVICE_INVALID;
 }
 
+
 void SIG_INT_handler(int sig)
 {
     print_time_records();
@@ -63,7 +62,6 @@ void SIG_INT_handler(int sig)
 
     exit(1);
 }
-
 
 
 static error_t server_on(void)
@@ -155,8 +153,7 @@ static error_t server_on(void)
 
 int main(int argc, char** argv)
 {
-    pthread_mutex_init(&g_random_courier_mutex, NULL);
-    process_orders(argv[1]);
+    process_orders();
     server_on();
     
 }
