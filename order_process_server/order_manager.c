@@ -34,6 +34,8 @@ static void* cook(void* p)
     courier_t* courier = NULL;
     order_t* order = *(order_t**)p;
 
+    printf("[%s] 주문도착. 대기시간 (%d)초\n", ORDER_RECEIVED, order->prep_time);
+
     /* sleep thread till preperation time end */
     sleep(order->prep_time);
     order->ready_at = time(NULL);
@@ -43,11 +45,11 @@ static void* cook(void* p)
         /* deliver order */
         courier->order = order;
         deliver_order(courier);
-        printf("[%s] (%s)를 배달원이 가져갑니다\n", __func__, order->name);
+        printf("[%s] (%s)를 배달원이 가져갑니다\n", ORDER_PICKED_UP, order->name);
     } else {
         /* add order if courier is not there */
         add_order(order);
-        printf("[%s] (%s)준비완료목록에 추가(총 %d개)\n", __func__, order->name, g_ready_order_count);
+        printf("[%s] (%s)준비완료목록에 추가(총 %d개)\n", ORDER_PREPARED, order->name, g_ready_order_count);
     }
 
     pthread_exit((void*)0);
