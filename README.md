@@ -3,7 +3,7 @@
 - Apple clang version 13.1.6 (clang-1316.0.21.2.3)
 - Target: x86_64-apple-darwin21.4.0
 
-## 서비스
+## 서비스 구성
 - 배달원 생성 프로그램 `/courier_generator`
 - 주문 처리 프로그램 `/order_process_server`
 
