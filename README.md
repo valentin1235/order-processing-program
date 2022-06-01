@@ -8,7 +8,7 @@
 - 주문 처리 프로그램 `/order_process_server`
 
 ## 실행하기
-#### 주문 처리 프로그램
+#### 주문 처리 서버
 1. 주문 처리 프로그램 폴더로 이동합니다 `cd ./order_process_server`
 2. 주문 처리 프로그램을 컴파일 합니다 `clang -std=c89 -W -Wall -pedantic-errors *.c`
 3. 주문 파일(`orders.json`)이 있는지 확인합니다
