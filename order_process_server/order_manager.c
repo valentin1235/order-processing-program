@@ -35,7 +35,6 @@ static void* cook(void* p)
     order_t* order = *(order_t**)p;
 
     /* sleep thread till preperation time end */
-    printf("[%s] (%s)를 요리합니다.(예상시간 %d)\n", __func__, order->name, order->prep_time);
     sleep(order->prep_time);
     order->ready_at = time(NULL);
     order->taken_at = time(0);
@@ -55,16 +54,14 @@ static void* cook(void* p)
 }
 
 /* global methods */
-void process_orders(const char* file_name)
+void* process_orders(void* p)
 {
     JSON_Value* json_file;
     JSON_Array* json_arr;
     size_t json_arr_count;
     size_t i;
-    
 
-    pthread_mutex_init(&g_random_courier_mutex, NULL);
-    pthread_mutex_init(&g_order_mutex, NULL);
+    char* file_name = *(char**)p;
 
     json_file = json_parse_file(file_name);
     json_arr = json_value_get_array(json_file);
@@ -79,7 +76,11 @@ void process_orders(const char* file_name)
         order->prep_time = (int)json_object_get_number(obj, "prepTime");
 
         pthread_create(&g_thread_cook, NULL, cook, &order);
+
+        sleep(1);
     }
+
+    pthread_exit((void*)0);
 }
 
 void remove_order(size_t i)

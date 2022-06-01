@@ -4,6 +4,11 @@
 #define DEFAULT_PORT ("3000")
 #define MESSAGE_SIZE (1000)
 
+#define MAX_CLIENT (8)
+
+extern int g_sock_clients[MAX_CLIENT];
+extern size_t g_sock_client_count;
+
 typedef struct request {
     char message[MESSAGE_SIZE];
     int client_socket;
@@ -16,7 +21,5 @@ typedef enum ERROR {
     ERROR_LISTEN = -3,
     ERROR_MESSAGE_FULL = -4
 } error_t;
-
-void SIGINT_handler(int sig);
 
 #endif /* SERVER_H */

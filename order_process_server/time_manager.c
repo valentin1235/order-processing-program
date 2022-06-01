@@ -30,7 +30,8 @@ void print_time_records(void)
     for (i = 0; i < s_order_waiting_times_count; ++i) {
         sum_order_waiting_time += s_order_waiting_times[i];
     }
-
-    printf("[print_time_records] 배달원 평균 대기 시간 : (%.2f)s\n", sum_courier_waiting_time / s_courier_waiting_times_count);
-    printf("[print_time_records] 음식 픽업 평균 대기 시간 : (%.2f)s\n", sum_order_waiting_time / s_order_waiting_times_count);
+    if (s_courier_waiting_times_count > 0 && s_order_waiting_times_count > 0) {
+        printf("[print_time_records] 배달원 평균 대기 시간 : (%.2f)s\n", sum_courier_waiting_time / s_courier_waiting_times_count);
+        printf("[print_time_records] 음식 픽업 평균 대기 시간 : (%.2f)s\n", sum_order_waiting_time / s_order_waiting_times_count);
+    }
 }

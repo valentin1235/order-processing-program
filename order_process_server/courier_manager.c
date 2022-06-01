@@ -89,13 +89,9 @@ void init_random_courier_queue(void)
 {
     s_random_courier_queue = malloc(sizeof(random_courier_queue_t));
 
-    pthread_mutex_lock(&g_random_courier_mutex);
-    {
-        s_random_courier_queue->value_count = 0;
-        s_random_courier_queue->front = 0;
-        s_random_courier_queue->back = 0;
-    }
-    pthread_mutex_unlock(&g_random_courier_mutex);
+    s_random_courier_queue->value_count = 0;
+    s_random_courier_queue->front = 0;
+    s_random_courier_queue->back = 0;
 }
 
 courier_t* dequeue_random_courier(void)
@@ -104,7 +100,7 @@ courier_t* dequeue_random_courier(void)
 
     pthread_mutex_lock(&g_random_courier_mutex);
     {
-        if (s_random_courier_queue->value_count <= 0) {
+        if (s_random_courier_queue->value_count == 0) {
             goto exit;
         }
 
@@ -124,11 +120,6 @@ void* process_courier_thread(void* p)
     request_t* pa_request = *(request_t**)p;
     int sec_taken_to_arrive;
 
-    pthread_mutex_init(&g_target_courier_mutex, NULL);
-
-    /* register sig int handler */
-    signal(SIGINT, SIGINT_handler);
-
     while (TRUE) {
         while (validate_request(pa_request->message) == FALSE) {
             int read_len;
@@ -137,6 +128,10 @@ void* process_courier_thread(void* p)
 
             if (read_len == -1 || read_len == 0) {
                 printf(MESSAGE_CONNECTION_CLOSED);
+                if (g_sock_client_count > 0) {
+                    --g_sock_client_count;
+                }
+                
                 goto end;
             }
         }

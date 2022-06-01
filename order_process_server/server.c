@@ -15,6 +15,10 @@
 
 #define SERVICE_NAME_LEN (8)
 
+
+int g_sock_clients[MAX_CLIENT];
+size_t g_sock_client_count = 0;
+
 static pthread_t s_thread_target_delivery;
 static pthread_t s_thread_order;
 static pthread_t s_thread_courier;
@@ -25,13 +29,14 @@ typedef enum service {
     SERVICE_IGNORED
 } service_t;
 
+
+/* static functions */
 static service_t get_service_type(char* message, size_t message_len)
 {
     char* p_message = message;
     char path_str[SERVICE_NAME_LEN];
     size_t i = 0;
 
-    printf("서비스타입 헨들러. 도착메세지 : %s\n", message);
     while (*p_message != '\0') {
         path_str[i++] = *p_message;
         ++p_message;
@@ -54,8 +59,10 @@ static service_t get_service_type(char* message, size_t message_len)
     return SERVICE_INVALID;
 }
 
-void SIGINT_handler(int sig)
+static void SIGINT_handler(int sig)
 {
+    size_t i;
+
     print_time_records();
 
     pthread_kill(s_thread_courier, sig);
@@ -63,9 +70,30 @@ void SIGINT_handler(int sig)
     pthread_kill(s_thread_target_delivery, sig);
     pthread_kill(g_thread_cook, sig);
 
+    for (i = 0; i < g_sock_client_count; ++i) {
+        close(g_sock_clients[i]);
+    }
+
     printf("[%s] 프로그램을 종료합니다. (시그널 번호 : %d)\n", __func__, sig);
 
     exit(1);
+}
+
+static void init_data(void)
+{
+    /* initialize courier queue */
+    init_random_courier_queue();
+
+    /* initialize mutex */
+    pthread_mutex_init(&g_target_courier_mutex, NULL);
+    pthread_mutex_init(&g_random_courier_mutex, NULL);
+    pthread_mutex_init(&g_order_mutex, NULL);
+    
+    /* ignore EPIPE(broken pipe) signal */
+    signal(SIGPIPE, SIG_IGN); 
+
+    /* register signal handler */
+    signal(SIGINT, SIGINT_handler);
 }
 
 static error_t server_on(void)
@@ -99,8 +127,7 @@ static error_t server_on(void)
 
     printf("[%s] 서버가 시작되었습니다. port:3000\n", __func__);
 
-    /* initialize courier queue */
-    init_random_courier_queue();
+    
 
     /* start delivery event listener */
     pthread_create(&s_thread_target_delivery, NULL, listen_target_delivery_event_thread, NULL);
@@ -115,6 +142,7 @@ static error_t server_on(void)
         client_addr_size = sizeof(client_addr);
         printf("[%s] 클라이언트를 받고있습니다...\n", __func__);
         client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_addr_size);
+        g_sock_clients[g_sock_client_count++] = client_socket;
         printf("[%s] 클라이언트를 받았습니다 : %d\n", __func__, client_socket);
 
         request = malloc(sizeof(request_t));
@@ -123,6 +151,9 @@ static error_t server_on(void)
         if (read_len == -1 || read_len == 0) {
             printf(MESSAGE_CONNECTION_CLOSED);
             free(request);
+            if (g_sock_client_count > 0) {
+                --g_sock_client_count;
+            }
 
             break;
         }
@@ -146,13 +177,15 @@ static error_t server_on(void)
     return SUCCESS;
 }
 
+
+
 int main(int argc, char** argv)
 {
     const char* filename = argv[1];
 
-    signal(SIGPIPE, SIG_IGN); /* ignore EPIPE(broken pipe) signal */
-    signal(SIGINT, SIGINT_handler);
+    init_data();
 
-    process_orders(filename);
+    pthread_create(&s_thread_order, NULL, process_orders, &filename);
+
     server_on();
 }

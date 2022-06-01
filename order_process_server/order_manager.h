@@ -22,7 +22,7 @@ extern order_t* g_ready_orders[ORDER_LIST_SIZE];
 extern int g_ready_order_count;
 
 /* methods */
-void process_orders(const char* file_name);
+void* process_orders(void* p);
 
 order_t* pop_random_order_or_null(void);
 
