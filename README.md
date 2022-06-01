@@ -28,14 +28,20 @@ none#10 /* 아무주문이나 다 픽업 가능하고, 도착하는데 10초걸�
 ```
 
 ## 영상
-[LINK](https://youtu.be/7DalTaIuk_E](https://youtu.be/sikZwmxh7nU))
+- [LINK](https://youtu.be/7DalTaIuk_E](https://youtu.be/sikZwmxh7nU))
 
 ## 기능 및 플로우
 ### < 주문 처리하기 >
 1. `/order_process_server`에서 프로그램을 실해알때 등록한 `orders.json` 파일을 읽어서 주문 하나당 하나의 스래드를 생성합니다 `process_orders`
 2. 주문 처리 스레드`cook` 에서는 주문에 해당되는 `prepTime`만큼 프로세스를 `sleep`하고 주문 처리가 완료되면 배달원에게 주문을 넘기고(`deliver_order`), 배달원이 없다면 주문목록 배열`g_ready_orders`에 넣습니다
 ### < 배달원 등록 하기 >
-1. `/courier_generator` 프로그램에서 보내진 배달원은 배달원 처리 스레드`process_courier_thread`로 이동합니다
+1. `/courier_generator`에서 배달원을 등록 요청을 보내고, `/order_process_server`에 배달원이 등록되면 배달원 처리 스레드`process_courier_thread`로 이동합니다
+2. 입력받은 배달원의 도착시간만큼 스레드를 `sleep` 합니다
+3. 배달원의 주문이 특정되어 있으면 "특정 주문만 픽업하는 배달원 배열"`s_target_couriers`에 들어갑니다
+4. "아무주문이나 픽업 가능한 배달원"이면 `s_random_courier_queue`에 들어갑니다
+5. 배달원 등록이 완료되고, 주문목록에 처리할수 있는 주문이 있으면 `s_random_courier_queue`에서 배달원 하나를 꺼내서 주문을 처리합니다
+### < 주문이 특정된 배달원의 배달처리 >
+1. `/order_process_server`에서 프로그램을 시작할때 "주문이 특정된 배달원이 주문을 찾는 스레드"`listen_target_delivery_event_thread`를 생성합니다
 2. 
 
 ## 이슈로그
