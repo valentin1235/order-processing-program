@@ -21,6 +21,9 @@
 ## 영상
 [LINK](https://youtu.be/7DalTaIuk_E](https://youtu.be/sikZwmxh7nU))
 
+## 기능 및 플로우
+### 주문 (`.json`) 
+
 ## 이슈로그
 ### < 캡슐화 이슈 >
 ##### 상황
