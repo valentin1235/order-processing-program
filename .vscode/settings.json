@@ -5,6 +5,8 @@
         "__string": "c",
         "cstring": "c",
         "courier_manager.h": "c",
-        "parson.h": "c"
+        "parson.h": "c",
+        "sstream": "c",
+        "typeinfo": "c"
     }
 }

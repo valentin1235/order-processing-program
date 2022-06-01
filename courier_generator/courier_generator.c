@@ -17,6 +17,8 @@
 #define ORDER_NAME_SIZE (50)
 #define TIME_STR_SIZE (11)
 
+static pthread_t s_thread_receive;
+static int s_sock_client = -1;
 static int s_exit = 0;
 
 
@@ -31,18 +33,31 @@ char* ID = "id";
 char* NAME = "name";
 char* PREP_TIME = "prepTime";
 
+static void SIGINT_handler(int sig)
+{
+    pthread_kill(s_thread_receive, sig);
 
-void* receive_message(void* p)
+    if (s_sock_client != -1) {
+        close(s_sock_client);
+    }
+
+    printf("[%s] 프로그램을 종료합니다. (시그널 번호 : %d)\n", __func__, sig);
+
+    exit(1);
+}
+
+
+static void* receive_message(void* p)
 {
     int client_socket = *(int*)p;
     char buffer[READ_SIZE];
 
-    printf("[receive thread] 주문처리 서버로부터 메세지를 받고있습니다..\n");
+    printf("[%s] 주문처리 서버로부터 메세지를 받고있습니다\n", __func__);
     do {
         int read_len;
 
         if (s_exit == 1) {
-            printf("[receive thread] 의도하지 않은 종료\n");
+            printf("[%s] 의도하지 않은 종료\n", __func__);
             break;
         }
 
@@ -50,18 +65,17 @@ void* receive_message(void* p)
         if (read_len == 0 || read_len == -1) {
             s_exit = 1;
             shutdown(client_socket, SHUT_RDWR);
-            printf("[receive thread] ECONNRESET : connection closed\n");
+            printf("[%s] ECONNRESET : connection closed\n", __func__);
             break;
         }
 
         buffer[READ_SIZE - 1] = '\0';
-        printf("[receive thread] 받은 메세지 : \"%s\"\n", buffer);
+        printf("[%s] 받은 메세지 : \"%s\"\n", __func__, buffer);
     } while (1);
 
     pthread_exit((void*)0);
 
     return NULL;
-    
 }
 
 static void build_message(char* write_buff, char* input)
@@ -116,15 +130,12 @@ error_t create_client(const char* server_host, const char* server_port)
 {
     int client_socket;
     struct sockaddr_in server_addr;
-    pthread_t thread_receive;
-    char input_buff[INPUT_SIZE] = { 0, };
-    char write_buff[WRITE_SIZE] = { 0, };
-
-    signal(SIGPIPE, SIG_IGN); /* ignore EPIPE(broken pipe) signal */
+    char input_buff[INPUT_SIZE] = { 0 };
+    char write_buff[WRITE_SIZE] = { 0 };
     
     client_socket = socket(PF_INET, SOCK_STREAM, 0);
     if (client_socket == -1) {
-        printf("[main] 소켓을 가져올수 없습니다\n");
+        printf("[%s] 소켓을 가져올수 없습니다\n", __func__);
         return ERROR_SOCKET;
     }
     server_addr.sin_family = AF_INET;
@@ -132,31 +143,25 @@ error_t create_client(const char* server_host, const char* server_port)
     server_addr.sin_port = htons(atoi(server_port));
 
     if (connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
-        printf("*[main] 서버 연결에 실패했습니다\n");
+        printf("*[%s] 서버 연결에 실패했습니다\n", __func__);
         return ERROR_CONNECT;
     }
 
-    pthread_create(&thread_receive, NULL, receive_message, &client_socket);
+    pthread_create(&s_thread_receive, NULL, receive_message, &client_socket);
 
-    printf("[main] 메세지를 입력해주세요. \"주문이름#도착하는데_걸리는_시간\"\n");
+    printf("[%s] 메세지를 입력해주세요. \"주문이름#도착하는데_걸리는_시간\"\n", __func__);
     do {
         fgets(input_buff, INPUT_SIZE, stdin);
         if (input_buff[0] == '\0' || validate_input(input_buff, INPUT_SIZE) == FALSE) {
-            printf("[main] 메세지 형식이 잘못되었습니다. 메세지를 다시 입력해주세요. \"주문이름#도착하는데_걸리는_시간\"\n");
+            printf("[%s] 메세지 형식이 잘못되었습니다. 메세지를 다시 입력해주세요. \"주문이름#도착하는데_걸리는_시간\"\n", __func__);
             continue;
         }
 
         build_message(write_buff, input_buff);
         write(client_socket, write_buff, WRITE_SIZE);
-        printf("[main] 메세지를 보냈습니다 : \"%s\"\n", write_buff);
+        printf("[%s] 메세지를 보냈습니다 : \"%s\"\n", __func__, write_buff);
         
-    } while (1);
-    
-    pthread_join(thread_receive, NULL);
-
-    if (s_exit != 1) {
-        close(client_socket);
-    }
+    } while (TRUE);
     
     return SUCCESS;
 }
@@ -166,5 +171,8 @@ error_t create_client(const char* server_host, const char* server_port)
 
 int main(int argc, char** argv)
 {
+    /* register signal handler */
+    signal(SIGINT, SIGINT_handler);
+
     create_client(argv[1], argv[2]);
 }
