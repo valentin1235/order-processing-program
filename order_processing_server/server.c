@@ -15,6 +15,10 @@
 
 #define SERVICE_NAME_LEN (8)
 
+static pthread_t s_thread_target_delivery;
+static pthread_t s_thread_order;
+static pthread_t s_thread_courier;
+
 typedef enum service {
     SERVICE_COURIER,
     SERVICE_INVALID,
@@ -50,12 +54,16 @@ static service_t get_service_type(char* message, size_t message_len)
     return SERVICE_INVALID;
 }
 
-void SIG_INT_handler(int sig)
+void SIGINT_handler(int sig)
 {
     print_time_records();
 
-    printf("[sigint handler] 스레드를 종료합니다. (시그널 번호 : %d)\n", sig);
-    pthread_exit(NULL);
+    pthread_kill(s_thread_courier, sig);
+    pthread_kill(s_thread_order, sig);
+    pthread_kill(s_thread_target_delivery, sig);
+    pthread_kill(g_thread_cook, sig);
+
+    printf("[%s] 프로그램을 종료합니다. (시그널 번호 : %d)\n", __func__, sig);
 
     exit(1);
 }
@@ -64,16 +72,10 @@ static error_t server_on(void)
 {
     int server_socket;
     struct sockaddr_in server_addr;
-
-    pthread_t thread_target_delivery;
-    pthread_t thread_order;
-    pthread_t thread_courier;
-
-    signal(SIGPIPE, SIG_IGN); /* ignore EPIPE(broken pipe) signal */
-
+    
     server_socket = socket(PF_INET, SOCK_STREAM, 0);
     if (server_socket == -1) {
-        printf("[main] 서버 소켓을 생성할수 없습니다\n");
+        printf("[%s] 서버 소켓을 생성할수 없습니다\n", __func__);
         return ERROR_SOCKET;
     }
 
@@ -85,23 +87,23 @@ static error_t server_on(void)
 
     /* bind socket with socket descriptor */
     if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
-        printf("[main] 서버 소켓 정보 바인딩에 실패했습니다\n");
+        printf("[%s] 서버 소켓 정보 바인딩에 실패했습니다\n", __func__);
         return ERROR_BIND;
     }
 
     /* listen via binded socket */
     if (listen(server_socket, 5) == -1) {
-        printf("[main] 서버 listen에 실패했습니다\n");
+        printf("[%s] 서버 listen에 실패했습니다\n", __func__);
         return ERROR_LISTEN;
     }
 
-    printf("[main] 서버가 시작되었습니다. port:3000\n");
+    printf("[%s] 서버가 시작되었습니다. port:3000\n", __func__);
 
     /* initialize courier queue */
     init_random_courier_queue();
 
     /* start delivery event listener */
-    pthread_create(&thread_target_delivery, NULL, listen_target_delivery_event_thread, NULL);
+    pthread_create(&s_thread_target_delivery, NULL, listen_target_delivery_event_thread, NULL);
 
     do {
         struct sockaddr_in client_addr;
@@ -111,9 +113,9 @@ static error_t server_on(void)
         int read_len;
 
         client_addr_size = sizeof(client_addr);
-        printf("[main] 클라이언트를 받고있습니다...\n");
+        printf("[%s] 클라이언트를 받고있습니다...\n", __func__);
         client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_addr_size);
-        printf("[main] 클라이언트를 받았습니다 : %d\n", client_socket);
+        printf("[%s] 클라이언트를 받았습니다 : %d\n", __func__, client_socket);
 
         request = malloc(sizeof(request_t));
         request->client_socket = client_socket;
@@ -127,12 +129,12 @@ static error_t server_on(void)
 
         switch (get_service_type(request->message, read_len)) {
         case SERVICE_COURIER:
-            pthread_create(&thread_courier, NULL, process_courier_thread, &request);
-            printf("[main] 배달원 처리 스레드가 생성되었습니다.\n");
+            pthread_create(&s_thread_courier, NULL, process_courier_thread, &request);
+            printf("[%s] 배달원 처리 스레드가 생성되었습니다.\n", __func__);
             break;
         case SERVICE_INVALID:
             write(client_socket, MESSAGE_INVALID_SERVICE, strlen(MESSAGE_INVALID_SERVICE) + 1);
-            printf("[main] 잘못된 서비스요청 메세지를 보냈습니다.\n");
+            printf("[%s] 잘못된 서비스요청 메세지를 보냈습니다.\n", __func__);
             break;
         case SERVICE_IGNORED:
             /* intentional fall through */
@@ -147,6 +149,9 @@ static error_t server_on(void)
 int main(int argc, char** argv)
 {
     const char* filename = argv[1];
+
+    signal(SIGPIPE, SIG_IGN); /* ignore EPIPE(broken pipe) signal */
+    signal(SIGINT, SIGINT_handler);
 
     process_orders(filename);
     server_on();

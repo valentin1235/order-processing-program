@@ -14,9 +14,10 @@
 #include "utils/bool.h"
 #include "utils/message.h"
 
+pthread_t g_thread_cook;
 pthread_mutex_t g_order_mutex;
 order_t* g_ready_orders[ORDER_LIST_SIZE] = { 0 };
-size_t g_ready_order_count = 0;
+int g_ready_order_count = 0;
 
 /* static methods */
 static void add_order(order_t* order)
@@ -34,7 +35,7 @@ static void* cook(void* p)
     order_t* order = *(order_t**)p;
 
     /* sleep thread till preperation time end */
-    printf("[order] (%s)를 요리합니다.(예상시간 %d)\n", order->name, order->prep_time);
+    printf("[%s] (%s)를 요리합니다.(예상시간 %d)\n", __func__, order->name, order->prep_time);
     sleep(order->prep_time);
     order->ready_at = time(NULL);
     order->taken_at = time(0);
@@ -43,11 +44,11 @@ static void* cook(void* p)
         /* deliver order */
         courier->order = order;
         deliver_order(courier);
-        printf("[order] (%s)를 배달원이 가져갑니다\n", order->name, g_ready_order_count);
+        printf("[%s] (%s)를 배달원이 가져갑니다\n", __func__, order->name);
     } else {
         /* add order if courier is not there */
         add_order(order);
-        printf("[order] (%s)준비완료목록에 추가(총 %lu개)\n", order->name, g_ready_order_count);
+        printf("[%s] (%s)준비완료목록에 추가(총 %d개)\n", __func__, order->name, g_ready_order_count);
     }
 
     pthread_exit((void*)0);
@@ -60,7 +61,7 @@ void process_orders(const char* file_name)
     JSON_Array* json_arr;
     size_t json_arr_count;
     size_t i;
-    pthread_t thread_cook;
+    
 
     pthread_mutex_init(&g_random_courier_mutex, NULL);
     pthread_mutex_init(&g_order_mutex, NULL);
@@ -77,7 +78,7 @@ void process_orders(const char* file_name)
         strncpy(order->name, json_object_get_string(obj, "name"), ORDER_NAME_SIZE);
         order->prep_time = (int)json_object_get_number(obj, "prepTime");
 
-        pthread_create(&thread_cook, NULL, cook, &order);
+        pthread_create(&g_thread_cook, NULL, cook, &order);
     }
 }
 

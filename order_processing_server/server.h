@@ -17,9 +17,6 @@ typedef enum ERROR {
     ERROR_MESSAGE_FULL = -4
 } error_t;
 
-
-void SIG_INT_handler(int sig);
+void SIGINT_handler(int sig);
 
 #endif /* SERVER_H */
-
-

@@ -16,9 +16,10 @@ typedef struct order {
     time_t taken_at;
 } order_t;
 
+extern pthread_t g_thread_cook;
 extern pthread_mutex_t g_order_mutex;
 extern order_t* g_ready_orders[ORDER_LIST_SIZE];
-extern size_t g_ready_order_count;
+extern int g_ready_order_count;
 
 /* methods */
 void process_orders(const char* file_name);
@@ -26,7 +27,5 @@ void process_orders(const char* file_name);
 order_t* pop_random_order_or_null(void);
 
 void remove_order(size_t i);
-
-void* cook(void* p);
 
 #endif /* ORDER_MANAGER_H */

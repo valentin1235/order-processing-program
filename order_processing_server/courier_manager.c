@@ -77,7 +77,7 @@ static void add_target_courier(courier_t* courier)
         }
 
         s_target_couriers[s_target_courier_count++] = courier;
-        printf("[add_target_courier] 배달원 추가 (총원 : %d)\n", s_target_courier_count);
+        printf("[%s] 배달원 추가 (총원 : %d)\n", __func__, s_target_courier_count);
     }
 
 end:
@@ -127,7 +127,7 @@ void* process_courier_thread(void* p)
     pthread_mutex_init(&g_target_courier_mutex, NULL);
 
     /* register sig int handler */
-    signal(SIGINT, SIG_INT_handler);
+    signal(SIGINT, SIGINT_handler);
 
     while (TRUE) {
         while (validate_request(pa_request->message) == FALSE) {
@@ -147,7 +147,7 @@ void* process_courier_thread(void* p)
         sec_taken_to_arrive = atoi(strtok(NULL, "#"));
 
         /* sleep thread till courier arrive */
-        printf("[courier] 배달원이 (%d)초 후 도착예정\n", sec_taken_to_arrive);
+        printf("[%s] 배달원이 (%d)초 후 도착예정\n", __func__, sec_taken_to_arrive);
         sleep(sec_taken_to_arrive);
 
         courier->arrived_at = time(NULL);
@@ -156,10 +156,10 @@ void* process_courier_thread(void* p)
         /* add courier */
         if (strcmp(courier->target, "none") == 0) {
             enqueue_random_courier(courier);
-            printf("[courier] 배달원이 도착(주문이름:%s)\n", courier->target);
+            printf("[%s] 배달원이 도착(주문이름:%s)\n", __func__, courier->target);
         } else {
             add_target_courier(courier);
-            printf("[courier] 배달원이 도착(주문이름:%s)\n", courier->target);
+            printf("[%s] 배달원이 도착(주문이름:%s)\n", __func__, courier->target);
         }
 
         /* deliver order */
@@ -185,9 +185,9 @@ void deliver_order(courier_t* courier)
     double courier_time_wait = difftime(now, courier->arrived_at);
     double order_time_wait = difftime(now, courier->order->ready_at);
 
-    printf("[deliver] 주문이 배송되었습니다\n");
-    printf("[deliver] (%s)음식이 배달되기까지 (%.2f)초 걸렸습니다\n", courier->order->name, order_time_wait);
-    printf("[deliver] 배달원은 (%.2f)초 기다렸습니다\n", courier_time_wait);
+    printf("[%s] 주문이 배송되었습니다\n", __func__);
+    printf("[%s] (%s)음식이 배달되기까지 (%.2f)초 걸렸습니다\n", __func__, courier->order->name, order_time_wait);
+    printf("[%s] 배달원은 (%.2f)초 기다렸습니다\n", __func__, courier_time_wait);
 
     add_time_records(order_time_wait, courier_time_wait);
 
@@ -201,9 +201,6 @@ void* listen_target_delivery_event_thread(void* p)
 {
     int i;
     int j;
-
-    /* register sig int handler */
-    signal(SIGINT, SIG_INT_handler);
 
     do {
         for (i = 0; i < s_target_courier_count; ++i) {
