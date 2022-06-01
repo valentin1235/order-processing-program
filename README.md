@@ -13,16 +13,30 @@
 2. 주문 처리 프로그램을 컴파일 합니다 `clang -std=c89 -W -Wall -pedantic-errors *.c`
 3. 주문 파일(`orders.json`)이 있는지 확인합니다
 4. 주문 처리 프로그램을 실행합니다 `./a.out orders.json`
+5. `orders.json` 파일에 명시된 `prepTime`만큼 기다리면 주문이 처리됩니다 
 #### 배달원 생성 프로그램
 1. 배달원 생성 프로그램 폴더로 이동합니다 `cd ./courier_generator`
 2. 배달원 생성 프로그램을 컴파일 합니다 `clang -std=c89 -W -Wall -pedantic-errors *.c`
 3. 배달원 생성 프로그램을 실생합니다 `./a.out 127.0.0.1 3000`
+4. 주문이 특정된 배달원의 경우 아래와 같이 입력합니다.
+```
+Banana#10 /* Banana라는 주문 만 픽업할 예정이고, 도착하는데 10초걸림 */
+```
+5. 주문이 특정되지 않은 배달원의 경우 아래와같이 입력합니다
+```
+none#10 /* 아무주문이나 다 픽업 가능하고, 도착하는데 10초걸림 */
+```
 
 ## 영상
 [LINK](https://youtu.be/7DalTaIuk_E](https://youtu.be/sikZwmxh7nU))
 
 ## 기능 및 플로우
-### 주문 (`.json`) 
+### < 주문 처리하기 >
+1. `/order_process_server`에서 프로그램을 실해알때 등록한 `orders.json` 파일을 읽어서 주문 하나당 하나의 스래드를 생성합니다 `process_orders`
+2. 주문 처리 스레드`cook` 에서는 주문에 해당되는 `prepTime`만큼 프로세스를 `sleep`하고 주문 처리가 완료되면 배달원에게 주문을 넘기고(`deliver_order`), 배달원이 없다면 주문목록 배열`g_ready_orders`에 넣습니다
+### < 배달원 등록 하기 >
+1. `/courier_generator` 프로그램에서 보내진 배달원은 배달원 처리 스레드`process_courier_thread`로 이동합니다
+2. 
 
 ## 이슈로그
 ### < 캡슐화 이슈 >
