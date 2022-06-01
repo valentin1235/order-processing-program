@@ -100,7 +100,6 @@ static error_t server_on(void)
     /* initialize courier queue */
     init_random_courier_queue();
 
-    
     /* start delivery event listener */
     pthread_create(&thread_target_delivery, NULL, listen_target_delivery_event_thread, NULL);
 
@@ -147,6 +146,8 @@ static error_t server_on(void)
 
 int main(int argc, char** argv)
 {
-    process_orders(argv[1]);
+    const char* filename = argv[1];
+
+    process_orders(filename);
     server_on();
 }

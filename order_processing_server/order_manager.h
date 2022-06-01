@@ -27,8 +27,6 @@ order_t* pop_random_order_or_null(void);
 
 void remove_order(size_t i);
 
-void add_order(order_t* order); /* tmp */
-
 void* cook(void* p);
 
 #endif /* ORDER_MANAGER_H */

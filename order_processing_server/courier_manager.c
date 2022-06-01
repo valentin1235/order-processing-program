@@ -24,11 +24,10 @@ typedef struct random_courier_queue {
 } random_courier_queue_t;
 
 static random_courier_queue_t* s_random_courier_queue;
-courier_t* s_target_couriers[COURIER_QUEUE_SIZE] = {
-    0,
-};
-int s_target_courier_count = 0;
+static courier_t* s_target_couriers[COURIER_QUEUE_SIZE] = { 0 };
+static int s_target_courier_count = 0;
 
+/* static functions */
 static int validate_request(char* msg)
 {
     return msg[0] == 'C'
@@ -41,20 +40,7 @@ static int validate_request(char* msg)
         && msg[7] == '#';
 }
 
-void init_random_courier_queue(void)
-{
-    s_random_courier_queue = malloc(sizeof(random_courier_queue_t));
-
-    pthread_mutex_lock(&g_random_courier_mutex);
-    {
-        s_random_courier_queue->value_count = 0;
-        s_random_courier_queue->front = 0;
-        s_random_courier_queue->back = 0;
-    }
-    pthread_mutex_unlock(&g_random_courier_mutex);
-}
-
-void enqueue_random_courier(courier_t* value)
+static void enqueue_random_courier(courier_t* value)
 {
     pthread_mutex_lock(&g_random_courier_mutex);
     {
@@ -66,6 +52,49 @@ void enqueue_random_courier(courier_t* value)
         ++s_random_courier_queue->value_count;
     }
 exit:
+    pthread_mutex_unlock(&g_random_courier_mutex);
+}
+
+static void remove_target_courier(size_t i)
+{
+    pthread_mutex_lock(&g_target_courier_mutex);
+    {
+        if (s_target_courier_count == 0) {
+            goto end;
+        }
+        s_target_couriers[i] = s_target_couriers[--s_target_courier_count];
+    }
+end:
+    pthread_mutex_unlock(&g_target_courier_mutex);
+}
+
+static void add_target_courier(courier_t* courier)
+{
+    pthread_mutex_lock(&g_target_courier_mutex);
+    {
+        if (s_target_courier_count == COURIER_QUEUE_SIZE) {
+            goto end;
+        }
+
+        s_target_couriers[s_target_courier_count++] = courier;
+        printf("[add_target_courier] 배달원 추가 (총원 : %d)\n", s_target_courier_count);
+    }
+
+end:
+    pthread_mutex_unlock(&g_target_courier_mutex);
+}
+
+/* global functions */
+void init_random_courier_queue(void)
+{
+    s_random_courier_queue = malloc(sizeof(random_courier_queue_t));
+
+    pthread_mutex_lock(&g_random_courier_mutex);
+    {
+        s_random_courier_queue->value_count = 0;
+        s_random_courier_queue->front = 0;
+        s_random_courier_queue->back = 0;
+    }
     pthread_mutex_unlock(&g_random_courier_mutex);
 }
 
@@ -87,35 +116,6 @@ exit:
     pthread_mutex_unlock(&g_random_courier_mutex);
 
     return ret;
-}
-
-void remove_target_courier(size_t i)
-{
-    pthread_mutex_lock(&g_target_courier_mutex);
-    {
-        if (s_target_courier_count == 0) {
-            goto end;
-        }
-        s_target_couriers[i] = s_target_couriers[--s_target_courier_count];
-    }
-end:
-    pthread_mutex_unlock(&g_target_courier_mutex);
-}
-
-void add_target_courier(courier_t* courier)
-{
-    pthread_mutex_lock(&g_target_courier_mutex);
-    {
-        if (s_target_courier_count == COURIER_QUEUE_SIZE) {
-            goto end;
-        }
-
-        s_target_couriers[s_target_courier_count++] = courier;
-        printf("[add_target_courier] 배달원 추가 (총원 : %d)\n", s_target_courier_count);
-    }
-
-end:
-    pthread_mutex_unlock(&g_target_courier_mutex);
 }
 
 void* process_courier_thread(void* p)
@@ -222,6 +222,7 @@ void* listen_target_delivery_event_thread(void* p)
                 }
             }
         }
+
         sleep(1);
     } while (TRUE);
 

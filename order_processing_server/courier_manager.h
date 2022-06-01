@@ -22,8 +22,6 @@ void deliver_order(courier_t* courier);
 
 void init_random_courier_queue(void);
 
-void enqueue_random_courier(courier_t* value);
-
 courier_t* dequeue_random_courier(void);
 
 #endif /* COURIER_MANAGER_H */

@@ -4,10 +4,10 @@
 
 #include "time_manager.h"
 
-static double s_courier_waiting_times[COURIER_QUEUE_SIZE] = { 0, };
+static double s_courier_waiting_times[COURIER_QUEUE_SIZE] = { 0 };
 static size_t s_courier_waiting_times_count = 0;
 
-static double s_order_waiting_times[ORDER_LIST_SIZE] = { 0, };
+static double s_order_waiting_times[ORDER_LIST_SIZE] = { 0 };
 static size_t s_order_waiting_times_count = 0;
 
 
@@ -31,6 +31,6 @@ void print_time_records(void)
         sum_order_waiting_time += s_order_waiting_times[i];
     }
 
-    printf("* 배달원 평균 대기 시간 : (%.2f)s\n", sum_courier_waiting_time / s_courier_waiting_times_count);
-    printf("* 음식 픽업 평균 대기 시간 : (%.2f)s\n", sum_order_waiting_time / s_order_waiting_times_count);
+    printf("[print_time_records] 배달원 평균 대기 시간 : (%.2f)s\n", sum_courier_waiting_time / s_courier_waiting_times_count);
+    printf("[print_time_records] 음식 픽업 평균 대기 시간 : (%.2f)s\n", sum_order_waiting_time / s_order_waiting_times_count);
 }

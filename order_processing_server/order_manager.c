@@ -15,14 +15,11 @@
 #include "utils/message.h"
 
 pthread_mutex_t g_order_mutex;
-
-order_t* g_ready_orders[ORDER_LIST_SIZE] = {
-    0,
-};
+order_t* g_ready_orders[ORDER_LIST_SIZE] = { 0 };
 size_t g_ready_order_count = 0;
 
 /* static methods */
-void add_order(order_t* order)
+static void add_order(order_t* order)
 {
     pthread_mutex_lock(&g_order_mutex);
     {
@@ -31,7 +28,7 @@ void add_order(order_t* order)
     pthread_mutex_unlock(&g_order_mutex);
 }
 
-void* cook(void* p)
+static void* cook(void* p)
 {
     courier_t* courier = NULL;
     order_t* order = *(order_t**)p;
@@ -41,8 +38,6 @@ void* cook(void* p)
     sleep(order->prep_time);
     order->ready_at = time(NULL);
     order->taken_at = time(0);
-
-    // printf("@@@ %d\n", dequeue_random_courier());
 
     if ((courier = dequeue_random_courier()) != NULL) {
         /* deliver order */
@@ -58,6 +53,7 @@ void* cook(void* p)
     pthread_exit((void*)0);
 }
 
+/* global methods */
 void process_orders(const char* file_name)
 {
     JSON_Value* json_file;
