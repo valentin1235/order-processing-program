@@ -29,7 +29,7 @@ static void add_order(order_t* order)
     pthread_mutex_unlock(&g_order_mutex);
 }
 
-static void* cook(void* p)
+static void* prepare(void* p)
 {
     courier_t* courier = NULL;
     order_t* order = *(order_t**)p;
@@ -77,7 +77,7 @@ void* process_orders(void* p)
         strncpy(order->name, json_object_get_string(obj, "name"), ORDER_NAME_SIZE);
         order->prep_time = (int)json_object_get_number(obj, "prepTime");
 
-        pthread_create(&g_thread_cook, NULL, cook, &order);
+        pthread_create(&g_thread_cook, NULL, prepare, &order);
 
         sleep(1);
     }
