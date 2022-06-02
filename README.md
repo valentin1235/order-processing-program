@@ -28,7 +28,7 @@ none#10 /* 아무 주문이나 다 픽업 가능하고, 도착하는데 10초걸
 ```
 
 ## 영상
-- [LINK](https://youtu.be/7DalTaIuk_E](https://youtu.be/sikZwmxh7nU))
+- [LINK](https://youtu.be/sikZwmxh7nU)
 
 ## 기능 및 플로우
 ### < 주문 처리하기 >
