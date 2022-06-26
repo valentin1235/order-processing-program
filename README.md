@@ -83,7 +83,7 @@ none#10 /* 아무 주문이나 다 픽업 가능하고, 도착하는데 10초걸
 - goto문을 사용해서 실패하면 mutex unlock으로 이동하도록 변경해서 해결
 
 ### 관련 블로그 포스팅
-- [프로세스동기화 : 피터슨 해결책](https://velog.io/@valentin123/%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4-%EB%8F%99%EA%B8%B0%ED%99%94-Petersons-Solution)
+- [프로세스동기화 : 피터슨의 해결안](https://velog.io/@valentin123/%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4-%EB%8F%99%EA%B8%B0%ED%99%94-Petersons-Solution)
 - [프로세스동기화 : 뮤텍스](https://velog.io/@valentin123/%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4-%EB%8F%99%EA%B8%B0%ED%99%94-Mutex)
 - [프로세스동기화 : 세마포어](https://velog.io/@valentin123/%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4-%EB%8F%99%EA%B8%B0%ED%99%94-Semaphore-b03l4fd8)
 - [프로세스동기화 : 모니터](https://velog.io/@valentin123/%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4-%EB%8F%99%EA%B8%B0%ED%99%94-Moniter)
